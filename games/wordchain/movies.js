@@ -1,0 +1,20 @@
+module.exports = [
+    "sholay", "dangal", "baahubali", "rrr", "pushpa", "kgf", "jawan", "pathaan", 
+    "animal", "pk", "bajrangi bhaijaan", "sanju", "padmaavat", "sultan", "dhoom 3", 
+    "war", "kabir singh", "tanhaji", "uri", "simmba", "krrish 3", "kick", 
+    "chennai express", "prem ratan dhan payo", "happy new year", "ek tha tiger", 
+    "bajirao mastani", "bang bang", "bharat", "drishyam", "drishyam 2", 
+    "bhool bhulaiyaa 2", "bala", "stree", "chhichhore", "raazi", "andhadhun", 
+    "badhaai ho", "queen", "kahaani", "zindagi na milegi dobara", "dil chahta hai", 
+    "lagaan", "swades", "rang de basanti", "taare zameen par", "3 idiots", 
+    "munna bhai mbbs", "lage raho munna bhai", "dilwale dulhania le jayenge", 
+    "kuch kuch hota hai", "kabhi khushi kabhie gham", "kal ho naa ho", "my name is khan", 
+    "chak de india", "om shanti om", "veer zaara", "devdas", "border", "sarfarosh", 
+    "hera pheri", "andaz apna apna", "golmaal", "dhamaal", "welcome", "bhagam bhag", 
+    "chupke chupke", "roja", "bombay", "nayakan", "vikram", "kaithi", "master", 
+    "mersal", "theri", "ghilli", "thuppakki", "enthiran", "shivaji", "baasha", 
+    "ala vaikunthapurramuloo", "arjun reddy", "magadheera", "eega", "srimanthudu", 
+    "maharshi", "sarileru neekevvaru", "attarintiki daredi", "lucifer", "premam", 
+    "kumbalangi nights", "bangalore days", "kgf chapter 2", "kantara", "777 charlie",
+    "shivaay", "kabaali", "sooryavanshi", "tiger zinda hai", "tiger 3"
+];

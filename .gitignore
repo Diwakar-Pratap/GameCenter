@@ -1,0 +1,13 @@
+# Ignore authentication and cache data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Node modules (can be restored via npm install)
+node_modules/
+
+# QR code image (optional)
+whatsapp-qr.png
+
+# OS generated files
+.DS_Store
+Thumbs.db
