@@ -11,12 +11,16 @@ const numberGuessingEngine = require("./games/numberguessing/gameEngine");
 const guessMovieEngine = require("./games/guessmovie/gameEngine");
 const wordChainEngine = require("./games/wordchain/gameEngine");
 const riddleEngine = require("./games/riddles/gameEngine");
+const tictactoeEngine = require("./games/tictactoe/gameEngine");
+const tetrisEngine = require("./games/tetris/gameEngine");
+const hangmanEngine = require("./games/hangman/gameEngine");
+const pacmanEngine = require("./games/pacman/gameEngine");
 
-const activeGames = new Map(); // groupId -> 'quiz' | 'mafia' | 'bomb' | 'numberguessing' | 'guessmovie' | 'wordchain' | 'riddle'
+const activeGames = new Map(); // groupId -> 'quiz' | 'mafia' | 'bomb' | 'numberguessing' | 'guessmovie' | 'wordchain' | 'riddle' | 'tictactoe' | 'tetris' | 'hangman' | 'pacman'
 
 // ── Client Setup ──────────────────────────────────────────────────────────────
 const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: "./.wwebjs_auth" }),
+  authStrategy: new LocalAuth({ dataPath: "./.wwebjs_auth_new" }),
   puppeteer: {
     headless: true,
     executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -105,6 +109,33 @@ client.on("message_create", async (msg) => {
   // Cross-game cleanup utility if engine handles its own natural end
   const activeGame = activeGames.get(groupId);
 
+  // 0. OTHER UTILITIES (/other)
+  if (cmd.startsWith("/other")) {
+    const args = body.split(" ").slice(1);
+    if (args.length === 0) {
+      return reply(`✨ *OTHER TOOLS* ✨\n\n1️⃣ */other LED [text]* - Create a scrolling LED text animation!\n2️⃣ */other EMOJILED [text]* - Create an LED using random emojis!\n\nExample: /other LED Hello`);
+    }
+    const subcmd = args[0].toLowerCase();
+    if (subcmd === "led" || subcmd === "emojiled") {
+      const textToAnimate = args.slice(1).join(" ");
+      if (!textToAnimate) return reply(`⚠️ Please provide some text to animate. Example: /other ${subcmd.toUpperCase()} Hello`);
+      
+      if (activeGames.has(groupId)) {
+          return reply(`⚠️ A game or animation is already running. Use /stop first.`);
+      }
+      activeGames.set(groupId, 'LED');
+      
+      const ledText = require("./other/ledText");
+      // Pass the isRunning check function so LED loops until stopped
+      const isRunning = () => activeGames.get(groupId) === 'LED';
+      const useRandomEmojis = (subcmd === "emojiled");
+      ledText.animateLED(groupId, textToAnimate, client, isRunning, useRandomEmojis).then(() => {
+          if (activeGames.get(groupId) === 'LED') activeGames.delete(groupId);
+      });
+      return;
+    }
+  }
+
   // 1. GAME MENU (/game)
   if (cmd === "/game" || cmd === "/game center" || cmd === "/games") {
     const targetGame = activeGames.get(groupId);
@@ -120,7 +151,11 @@ client.on("message_create", async (msg) => {
       `4️⃣ */numberguessing* - Higher/lower number game.\n` +
       `5️⃣ */guessmovie* - Guess the Indian Movie from Emojis, Dialogues, or Songs!\n` +
       `6️⃣ */wordchain* - Antakshari with English Words & Movie Names!\n` +
-      `7️⃣ */riddle* - Riddle Battle! First to guess correctly wins.\n\n` +
+      `7️⃣ */riddle* - Riddle Battle! First to guess correctly wins.\n` +
+      `8️⃣ */tictactoe* - Play a 2-player game of Tic-Tac-Toe!\n` +
+      `9️⃣ */tetris* - Play a real-time game of Tetris!\n` +
+      `🔟 */hangman* - Play a classic game of Hangman with the group!\n` +
+      `1️⃣1️⃣ */pacman* - Play emoji Pac-Man! Eat dots, dodge ghosts!\n\n` +
       `Type the command of the game you want to start!`;
       
     return reply(menu);
@@ -197,6 +232,45 @@ client.on("message_create", async (msg) => {
     return reply(`🧠 *Riddle Battle Started!*\n\n${senderName} created a lobby.\nType */join* to enter.\nType */start* when ready.`);
   }
 
+  if (cmd === "/tictactoe") {
+    if (activeGames.has(groupId) && activeGames.get(groupId) !== 'tictactoe') return reply(`⚠️ Another game (${activeGames.get(groupId)}) is running.`);
+    const room = tictactoeEngine.getRoom(groupId);
+    if (room && room.phase !== "lobby") return reply(`⚠️ A Tic-Tac-Toe game is already running!`);
+    activeGames.set(groupId, 'tictactoe');
+    const newRoom = tictactoeEngine.createRoom(groupId, senderName, client);
+    newRoom.addPlayer(senderName, msg.author || msg.from);
+    const tictactoeResponses = require("./games/tictactoe/botResponses");
+    return reply(tictactoeResponses.lobbyCreated(senderName));
+  }
+
+  if (cmd === "/tetris") {
+    if (activeGames.has(groupId) && activeGames.get(groupId) !== 'tetris') return reply(`⚠️ Another game (${activeGames.get(groupId)}) is running.`);
+    const room = tetrisEngine.getRoom(groupId);
+    if (room) return reply(`⚠️ A Tetris game is already running!`);
+    activeGames.set(groupId, 'tetris');
+    tetrisEngine.createRoom(groupId, senderName, client);
+    return reply(`🎮 *Tetris Started!*\n\n${senderName} has created a session.\nType */start* when ready.`);
+  }
+
+  if (cmd === "/pacman") {
+    if (activeGames.has(groupId) && activeGames.get(groupId) !== 'pacman') return reply(`⚠️ Another game (${activeGames.get(groupId)}) is running.`);
+    const existingPacman = pacmanEngine.getRoom(groupId);
+    if (existingPacman) return reply(`⚠️ A Pac-Man game is already running!`);
+    activeGames.set(groupId, 'pacman');
+    pacmanEngine.createRoom(groupId, senderName, client);
+    return reply(`👾 *Pac-Man Started!*\n\n${senderName} created a session.\nType */start* when ready.`);
+  }
+
+  if (cmd === "/hangman") {
+    if (activeGames.has(groupId) && activeGames.get(groupId) !== 'hangman') return reply(`⚠️ Another game (${activeGames.get(groupId)}) is running.`);
+    const room = hangmanEngine.getRoom(groupId);
+    if (room && room.phase !== "lobby") return reply(`⚠️ A Hangman game is already running!`);
+    activeGames.set(groupId, 'hangman');
+    const newRoom = hangmanEngine.createRoom(groupId, senderName, client);
+    newRoom.addPlayer(senderName, msg.author || msg.from);
+    return reply(`🪢 *Hangman Started!*\n\n${senderName} created a lobby.\nType */join* to enter.\nType */start* when ready.`);
+  }
+
   // 3. ROUTE UNIVERSAL COMMANDS based on activeGames
   if (!activeGames.has(groupId)) {
      // No game active but they might have typed /join or something
@@ -217,10 +291,21 @@ client.on("message_create", async (msg) => {
       if (currentGame === 'guessmovie') return guessMovieEngine.getRoom(groupId);
       if (currentGame === 'wordchain') return wordChainEngine.getRoom(groupId);
       if (currentGame === 'riddle') return riddleEngine.getRoom(groupId);
+      if (currentGame === 'tictactoe') return tictactoeEngine.getRoom(groupId);
+      if (currentGame === 'tetris') return tetrisEngine.getRoom(groupId);
+      if (currentGame === 'hangman') return hangmanEngine.getRoom(groupId);
+      if (currentGame === 'pacman') return pacmanEngine.getRoom(groupId);
   };
   const room = getActiveRoom();
 
   if (!room) {
+      if (currentGame === 'LED') {
+          if (cmd === '/stop') {
+              activeGames.delete(groupId);
+              return reply(`🛑 *LED Marquee* has been stopped!`);
+          }
+          return; // Ignore other messages while LED is running
+      }
       activeGames.delete(groupId);
       return; // cleanup stale state
   }
@@ -237,6 +322,10 @@ client.on("message_create", async (msg) => {
       if (currentGame === 'guessmovie') guessMovieEngine.deleteRoom(groupId);
       if (currentGame === 'wordchain') wordChainEngine.deleteRoom(groupId);
       if (currentGame === 'riddle') riddleEngine.deleteRoom(groupId);
+      if (currentGame === 'tictactoe') tictactoeEngine.deleteRoom(groupId);
+      if (currentGame === 'tetris') tetrisEngine.deleteRoom(groupId);
+      if (currentGame === 'hangman') hangmanEngine.deleteRoom(groupId);
+      if (currentGame === 'pacman') pacmanEngine.deleteRoom(groupId);
 
       activeGames.delete(groupId);
       return reply(`🛑 *Game ended by ${senderName}.*\nType /game to play something else!`);
@@ -346,6 +435,61 @@ client.on("message_create", async (msg) => {
       }
       const handled = await room.handleMessage(senderName, msg);
       if (handled && room.phase === "gameover") activeGames.delete(groupId);
+  }
+  else if (currentGame === 'tictactoe') {
+      if (cmd === "/join") {
+          if (room.phase !== "lobby") return reply(`⚠️ Game started!`);
+          const tictactoeResponses = require("./games/tictactoe/botResponses");
+          if (!room.addPlayer(senderName, msg.author || msg.from)) return reply(tictactoeResponses.lobbyFull());
+          return reply(tictactoeResponses.joinSuccess(senderName));
+      }
+      if (cmd === "/start") {
+          if (room.phase !== "lobby") return reply(`⚠️ Game already started!`);
+          if (senderName !== room.hostName) return reply(`⚠️ Only host can start!`);
+          return room.startGame();
+      }
+      const handled = await room.handleMessage(senderName, msg);
+      if (handled && room.phase === "gameover") {
+          activeGames.delete(groupId);
+      }
+  }
+  else if (currentGame === 'tetris') {
+      if (cmd === "/start") {
+          if (senderName !== room.hostName) return reply(`⚠️ Only host can start!`);
+          if (room.intervalTimer) return reply(`⚠️ Tetris has already started!`);
+          return room.startGame();
+      }
+      const handled = await room.handleMessage(senderName, msg);
+      if (handled && room.isGameOver) {
+          activeGames.delete(groupId);
+      }
+  }
+  else if (currentGame === 'hangman') {
+      if (cmd === "/join") {
+          if (room.phase !== "lobby") return reply(`⚠️ Game started!`);
+          if (!room.addPlayer(senderName, msg.author || msg.from)) return reply(`⚠️ You already joined!`);
+          return reply(`🪢 *${senderName}* joined Hangman!`);
+      }
+      if (cmd === "/start") {
+          if (room.phase !== "lobby") return reply(`⚠️ Game already started!`);
+          if (senderName !== room.hostName) return reply(`⚠️ Only host can start!`);
+          return room.startGame();
+      }
+      const handled = await room.handleMessage(senderName, msg);
+      if (handled && room.phase === "gameover") {
+          activeGames.delete(groupId);
+      }
+  }
+  else if (currentGame === 'pacman') {
+      if (cmd === "/start") {
+          if (senderName !== room.hostName) return reply(`⚠️ Only the host (${room.hostName}) can start!`);
+          if (room.intervalTimer) return reply(`⚠️ Pac-Man has already started!`);
+          return room.startGame();
+      }
+      const handled = await room.handleMessage(senderName, msg);
+      if (handled && room.isGameOver) {
+          activeGames.delete(groupId);
+      }
   }
 
   // Cross-check one more time in case engines naturally ended

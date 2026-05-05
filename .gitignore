@@ -1,5 +1,6 @@
 # Ignore authentication and cache data
 .wwebjs_auth/
+.wwebjs_auth_new/
 .wwebjs_cache/
 
 # Node modules (can be restored via npm install)
